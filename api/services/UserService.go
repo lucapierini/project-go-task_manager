@@ -12,7 +12,7 @@ import (
 
 type UserInterface interface {
 	RegisterUser(userDto dto.UserDto) (*models.User, error)
-	LoginUser(userDto dto.UserDto) (*models.User, error)
+	LoginUser(loginDto dto.LoginDto) (*models.User, error)
 	GetUserById(id uint) (*models.User, error)
 	GetUserByEmail(email string) (*models.User, error)
 	ListUsers() ([]models.User, error)
