@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -42,6 +43,8 @@ func (h *UserHandler) Login(c *gin.Context){
 		c.JSON(400, gin.H{"error": "Invalid data"})
 		return
 	}
+
+	fmt.Println(loginDto)
 
 	token, err := h.userService.LoginUser(loginDto)
 	if err != nil {

@@ -2,7 +2,6 @@ package models
 
 import (
 	"gorm.io/gorm"
-	"github.com/lucapierini/project-go-task_manager/responses"
 )
 
 type User struct {
