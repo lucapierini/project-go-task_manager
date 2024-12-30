@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/lucapierini/project-go-task_manager/dto"
@@ -52,10 +53,11 @@ func (h *UserHandler) Login(c *gin.Context){
 		c.JSON(401, gin.H{"error": err.Error()})
 		return
 	}
-
+	c.SetCookie("auth_token", token, int(time.Now().Add(1*time.Hour).Unix()), "/", "", false, true)
+	c.JSON(http.StatusOK, gin.H{"message": "Login successful"})
 	// Responder con el token
-	c.SetSameSite(http.SameSiteNoneMode)
-	c.SetCookie("Authorization", token, 3600 * 24 * 30 ,"", "", false, true)
+	// c.SetSameSite(http.SameSiteNoneMode)
+	// c.SetCookie("Authorization", token, 3600 * 24 * 30 ,"", "", false, true)
 
 	c.JSON(200, gin.H{"token": token})
 }

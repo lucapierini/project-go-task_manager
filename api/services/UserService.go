@@ -12,13 +12,13 @@ import (
 )
 
 type UserInterface interface {
-    RegisterUser (userDto dto.UserDto) (*models.User, error)
-    LoginUser (loginDto dto.LoginDto) (string, error)
+    RegisterUser(userDto dto.UserDto) (*models.User, error)
+    LoginUser(loginDto dto.LoginDto) (string, error)
     GetUserById(id uint) (*models.User, error)
     GetUserByEmail(email string) (*models.User, error)
     ListUsers() ([]models.User, error)
-    UpdateUser (id uint, userDto dto.UserDto) (*models.User, error)
-    DeleteUser (id uint) error // Este método debe estar presente
+    UpdateUser(id uint, userDto dto.UserDto) (*models.User, error)
+    DeleteUser(id uint) error // Este método debe estar presente
 }
 
 type UserService struct{}
@@ -77,7 +77,7 @@ func (s *UserService) RegisterUser(userDto dto.UserDto) (*models.User, error) {
 
 func (s *UserService) LoginUser(loginDto dto.LoginDto) (string, error) {
 	var user models.User
-	if err := config.DB.Where("email = ?", loginDto.Email).First(&user).Error; err != nil {
+	if err := config.DB.Preload("Roles").Where("email = ?", loginDto.Email).First(&user).Error; err != nil {
 		fmt.Println("invalid credentials")
 		return "", errors.New("invalid credentials")
 	}
@@ -87,9 +87,14 @@ func (s *UserService) LoginUser(loginDto dto.LoginDto) (string, error) {
 		return "", errors.New("invalid credentials")
 	}
 
+	var roles []string
+	for _, role := range user.Roles {
+		roles = append(roles, role.Name)
+	}
 
 	fmt.Println("generating token for: " + user.Username)
-	token, err := utils.GenerateToken(user)
+	// token, err := utils.GenerateToken(user)
+	token, err := utils.GenerateJWT(user.ID, roles)
 	if err != nil {
 		return "Error", err
 	}
