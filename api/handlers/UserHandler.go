@@ -8,6 +8,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/lucapierini/project-go-task_manager/dto"
+	"github.com/lucapierini/project-go-task_manager/middlewares"
 	"github.com/lucapierini/project-go-task_manager/services"
 )
 
@@ -21,21 +22,32 @@ func NewUserHandler(userService services.UserInterface) *UserHandler{
 	}
 }
 
-func (h *UserHandler) Register(c *gin.Context){
-	var userDto dto.UserDto
+func (h *UserHandler) Register(c *gin.Context) {
+    var userDto dto.UserDto
+    if err := c.ShouldBindJSON(&userDto); err != nil {
+        c.JSON(http.StatusBadRequest, gin.H{
+            "error": "Invalid request data",
+            "details": err.Error(),
+        })
+        return
+    }
 
-	if c.Bind(&userDto) != nil {
-		c.JSON(400, gin.H{"error": "Invalid data"})
-		return
-	}
+    user, err := h.userService.RegisterUser(userDto)
+    if err != nil {
+        statusCode := http.StatusInternalServerError
+        if err == services.ErrEmailAlreadyRegistered {
+            statusCode = http.StatusConflict
+        } else if err == services.ErrInvalidData {
+            statusCode = http.StatusBadRequest
+        }
 
-	user, err := h.userService.RegisterUser(userDto)
-	if err != nil {
-		c.JSON(400, gin.H{"error": err.Error()})
-		return
-	}
+        c.JSON(statusCode, gin.H{
+            "error": err.Error(),
+        })
+        return
+    }
 
-	c.JSON(200, user)
+    c.JSON(http.StatusCreated, user)
 }
 
 func (h *UserHandler) Login(c *gin.Context){
@@ -48,11 +60,20 @@ func (h *UserHandler) Login(c *gin.Context){
 
 	fmt.Println(loginDto)
 
-	token, err := h.userService.LoginUser(loginDto)
+	user, err := h.userService.LoginUser(loginDto)
 	if err != nil {
 		c.JSON(401, gin.H{"error": err.Error()})
 		return
 	}
+
+	fmt.Println("generating token for: " + user.Username)
+	// token, err := utils.GenerateToken(user)
+	token, err := middlewares.GenerateToken(user)
+	if err != nil {
+		c.JSON(401, gin.H{"error": err.Error()})
+		return
+	}
+
 	c.SetCookie("auth_token", token, int(time.Now().Add(1*time.Hour).Unix()), "/", "", false, true)
 	c.JSON(http.StatusOK, gin.H{"message": "Login successful"})
 	// Responder con el token

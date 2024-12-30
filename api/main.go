@@ -40,25 +40,50 @@ func init(){
 func main() {
 	router = gin.Default()
 
-	loadRoutes()
+	// loadRoutesWithMiddlewares()
+
+	loadRoutesWithoutMiddlewares()
 
 	router.Run(":8080")
 }
 
-func loadRoutes() {
+func loadRoutesWithoutMiddlewares() {
 	router = gin.Default()
 
 	public := router.Group("/api")
 	{
 		public.POST("/register", userHandler.Register)
 		public.POST("/login", userHandler.Login)
-	
 	}
 
+	roleRoutes := router.Group("/roles")
+	roleRoutes.POST("/", roleHandler.CreateRole)      // Crear rol
+	roleRoutes.GET("/", roleHandler.ListRoles)        // Listar roles
+	roleRoutes.GET("/:id", roleHandler.GetRole)       // Obtener rol por ID
+	roleRoutes.PUT("/:id", roleHandler.UpdateRole)    // Actualizar rol
+	roleRoutes.DELETE("/:id", roleHandler.DeleteRole)  // Eliminar rol	
+
+	userRoutes := router.Group("/users")
+	userRoutes.GET("/", userHandler.ListUsers) // Esta ruta está protegida
+	userRoutes.GET("/:id", userHandler.GetUser ) // Esta ruta también está protegida
+	userRoutes.PUT("/:id", userHandler.UpdateUser)
+	userRoutes.DELETE("/:id", userHandler.DeleteUser)
+}
+
+func loadRoutesWithMiddlewares() {
+	router = gin.Default()
+	
 	// Middleware for all routes - CORS
 	router.Use(middlewares.CORSMiddleware())
 
+	public := router.Group("/api")
+	{
+		public.POST("/register", userHandler.Register)
+		public.POST("/login", userHandler.Login)
+	}
+
 	roleRoutes := router.Group("/roles")
+	roleRoutes.Use(middlewares.AuthMiddleware("Administrador"))
 	// Todas las rutas de roles están protegidas
 	// roleRoutes.Use(middlewares.ValidateToken, middlewares.RoleMiddleware([]string{"Administrador"})) // Solo administradores pueden acceder
 	// {

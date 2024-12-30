@@ -7,13 +7,13 @@ import (
 	"github.com/lucapierini/project-go-task_manager/config"
 	"github.com/lucapierini/project-go-task_manager/dto"
 	"github.com/lucapierini/project-go-task_manager/models"
-	"github.com/lucapierini/project-go-task_manager/utils"
+	// "github.com/lucapierini/project-go-task_manager/utils"
 	"golang.org/x/crypto/bcrypt"
 )
 
 type UserInterface interface {
     RegisterUser(userDto dto.UserDto) (*models.User, error)
-    LoginUser(loginDto dto.LoginDto) (string, error)
+    LoginUser(loginDto dto.LoginDto) (*models.User, error)
     GetUserById(id uint) (*models.User, error)
     GetUserByEmail(email string) (*models.User, error)
     ListUsers() ([]models.User, error)
@@ -65,6 +65,7 @@ func (s *UserService) RegisterUser(userDto dto.UserDto) (*models.User, error) {
 		if err := config.DB.First(&defaultRole, "name = ?", "Usuario").Error; err != nil {
 			return nil, err
 		}
+		user.Roles = []models.Role{defaultRole}
 	}
 
 	if err := config.DB.Create(&user).Error; err != nil {
@@ -75,31 +76,19 @@ func (s *UserService) RegisterUser(userDto dto.UserDto) (*models.User, error) {
 }
 
 
-func (s *UserService) LoginUser(loginDto dto.LoginDto) (string, error) {
+func (s *UserService) LoginUser(loginDto dto.LoginDto) (*models.User, error) {
 	var user models.User
 	if err := config.DB.Preload("Roles").Where("email = ?", loginDto.Email).First(&user).Error; err != nil {
 		fmt.Println("invalid credentials")
-		return "", errors.New("invalid credentials")
+		return nil, errors.New("invalid credentials")
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(loginDto.Password)); err != nil {
 		fmt.Println("invalid password")
-		return "", errors.New("invalid credentials")
+		return nil, errors.New("invalid credentials")
 	}
 
-	var roles []string
-	for _, role := range user.Roles {
-		roles = append(roles, role.Name)
-	}
-
-	fmt.Println("generating token for: " + user.Username)
-	// token, err := utils.GenerateToken(user)
-	token, err := utils.GenerateJWT(user.ID, roles)
-	if err != nil {
-		return "Error", err
-	}
-
-	return token, nil
+	return &user, nil
 }
 
 
