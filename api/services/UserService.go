@@ -88,7 +88,7 @@ func (s *UserService) LoginUser(loginDto dto.LoginDto) (string, error) {
 	}
 
 
-	fmt.Println("generating token for" + user.Username)
+	fmt.Println("generating token for: " + user.Username)
 	token, err := utils.GenerateToken(user)
 	if err != nil {
 		return "Error", err

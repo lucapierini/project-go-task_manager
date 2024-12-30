@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"fmt"
+	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -51,6 +52,10 @@ func (h *UserHandler) Login(c *gin.Context){
 		c.JSON(401, gin.H{"error": err.Error()})
 		return
 	}
+
+	// Responder con el token
+	c.SetSameSite(http.SameSiteNoneMode)
+	c.SetCookie("Authorization", token, 3600 * 24 * 30 ,"", "", false, true)
 
 	c.JSON(200, gin.H{"token": token})
 }

@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-func CheckToken(c *gin.Context) {
+func ValidateToken(c *gin.Context) {
 	// Get the cookie from the request
 	tokenString, err := c.Cookie("Authorization")
 
