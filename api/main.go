@@ -1,6 +1,9 @@
 package main
 
 import (
+	"log"
+	"os"
+
 	"github.com/gin-gonic/gin"
 	"github.com/lucapierini/project-go-task_manager/config"
 	"github.com/lucapierini/project-go-task_manager/dto"
@@ -12,91 +15,97 @@ import (
 var (
 	userHandler *handlers.UserHandler
 	roleHandler *handlers.RoleHandler
-	router *gin.Engine
 )
 
-func init(){
+func init() {
 	config.LoadEnvVariables()
 	config.ConnectDB()
 	config.SyncDB()
-	// config.CreateDefaultRoles()
-	
 
-	    // Initialize services
-		userService := services.NewUserService()
-		roleService := services.NewRoleService()
-	
-		// Initialize handlers with services
-		userHandler = handlers.NewUserHandler(userService)
-		roleHandler = handlers.NewRoleHandler(roleService)
+	userService := services.NewUserService()
+	roleService := services.NewRoleService()
 
-		roleService.CreateRole(dto.RoleDto{Name: "Administrador"})
-		roleService.CreateRole(dto.RoleDto{Name: "Lector"})
-		roleService.CreateRole(dto.RoleDto{Name: "Usuario"})
-		userService.RegisterUser(dto.UserDto{Username: "admin", Password: "admin", RoleIds: []uint{1, 2}, Email: "admin@admin.com"})
-	
+	userHandler = handlers.NewUserHandler(userService)
+	roleHandler = handlers.NewRoleHandler(roleService)
+
+	initializeDefaultData(roleService, userService)
+}
+
+func initializeDefaultData(roleService *services.RoleService, userService *services.UserService) {
+	roles := []string{"Administrador", "Lector", "Usuario"}
+	for _, role := range roles {
+		if _, err := roleService.CreateRole(dto.RoleDto{Name: role}); err != nil {
+			log.Printf("Error creating role %s: %v\n", role, err)
+		}
+	}
+
+	adminUser := dto.UserDto{
+		Username: "admin",
+		Password: "admin",
+		RoleIds:  []uint{1, 2},
+		Email:    "admin@admin.com",
+	}
+	if _, err := userService.RegisterUser(adminUser); err != nil {
+		log.Printf("Error creating admin user: %v\n", err)
+	}
 }
 
 func main() {
-	router = gin.Default()
-
-	loadRoutesWithMiddlewares()
-
-	// loadRoutesWithoutMiddlewares()
-
-	router.Run(":8080")
-}
-
-func loadRoutesWithoutMiddlewares() {
-	router = gin.Default()
-
-	public := router.Group("/api")
-	{
-		public.POST("/register", userHandler.Register)
-		public.POST("/login", userHandler.Login)
-	}
-
-	roleRoutes := router.Group("/roles")
-	roleRoutes.POST("/", roleHandler.CreateRole)      // Crear rol
-	roleRoutes.GET("/", roleHandler.ListRoles)        // Listar roles
-	roleRoutes.GET("/:id", roleHandler.GetRole)       // Obtener rol por ID
-	roleRoutes.PUT("/:id", roleHandler.UpdateRole)    // Actualizar rol
-	roleRoutes.DELETE("/:id", roleHandler.DeleteRole)  // Eliminar rol	
-
-	userRoutes := router.Group("/users")
-	userRoutes.GET("/", userHandler.ListUsers) // Esta ruta está protegida
-	userRoutes.GET("/:id", userHandler.GetUser ) // Esta ruta también está protegida
-	userRoutes.PUT("/:id", userHandler.UpdateUser)
-	userRoutes.DELETE("/:id", userHandler.DeleteUser)
-}
-
-func loadRoutesWithMiddlewares() {
-	router = gin.Default()
-	
-	// Middleware for all routes - CORS
+	router := gin.Default()
 	router.Use(middlewares.CORSMiddleware())
 
-	public := router.Group("/api")
-	{
-		public.POST("/register", userHandler.Register)
-		public.POST("/login", userHandler.Login)
+	setupRoutes(router)
+
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
 	}
-
-	roleRoutes := router.Group("/roles")
-	roleRoutes.Use(middlewares.AuthMiddleware("Administrador"))
-	{
-		roleRoutes.POST("/", roleHandler.CreateRole)      // Crear rol
-		roleRoutes.GET("/", roleHandler.ListRoles)        // Listar roles
-		roleRoutes.GET("/:id", roleHandler.GetRole)       // Obtener rol por ID
-		roleRoutes.PUT("/:id", roleHandler.UpdateRole)    // Actualizar rol
-		roleRoutes.DELETE("/:id", roleHandler.DeleteRole)  // Eliminar rol
+	
+	log.Printf("Server starting on port %s", port)
+	if err := router.Run(":" + port); err != nil {
+		log.Fatalf("Failed to start server: %v", err)
 	}
+}
 
-	// Group with middleware CheckToken
-	userRoutes := router.Group("/users")
-	userRoutes.GET("/", middlewares.AuthMiddleware("Administrador", "Lector"),userHandler.ListUsers) // Esta ruta está protegida
-	userRoutes.GET("/:id", middlewares.AuthMiddleware("Administrador", "Lector"), userHandler.GetUser ) // Esta ruta también está protegida
-	userRoutes.PUT("/:id",  middlewares.AuthMiddleware("Administrador"),userHandler.UpdateUser)
-	userRoutes.DELETE("/:id",  middlewares.AuthMiddleware("Administrador"),userHandler.DeleteUser)
+func setupRoutes(router *gin.Engine) {
+	api := router.Group("/api")
+	{
+		// Public routes
+		auth := api.Group("/auth")
+		{
+			auth.POST("/register", userHandler.Register)
+			auth.POST("/login", userHandler.Login)
+			auth.POST("/refresh", middlewares.RefreshTokenHandler)
+		}
 
+		// Protected routes
+		admin := api.Group("/admin")
+		admin.Use(middlewares.AuthMiddleware("Administrador"))
+		{
+			// Roles management
+			roles := admin.Group("/roles")
+			{
+				roles.POST("/", roleHandler.CreateRole)
+				roles.GET("/", roleHandler.ListRoles)
+				roles.GET("/:id", roleHandler.GetRole)
+				roles.PUT("/:id", roleHandler.UpdateRole)
+				roles.DELETE("/:id", roleHandler.DeleteRole)
+			}
+
+			// User management (admin only)
+			users := admin.Group("/users")
+			{
+				users.GET("/", userHandler.ListUsers)
+				users.PUT("/:id", userHandler.UpdateUser)
+				users.DELETE("/:id", userHandler.DeleteUser)
+			}
+		}
+
+		// Routes accessible by both Admin and Reader
+		users := api.Group("/users")
+		users.Use(middlewares.AuthMiddleware("Administrador", "Lector"))
+		{
+			users.GET("/:id", userHandler.GetUser)
+		}
+	}
 }
