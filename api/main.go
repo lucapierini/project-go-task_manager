@@ -40,9 +40,9 @@ func init(){
 func main() {
 	router = gin.Default()
 
-	// loadRoutesWithMiddlewares()
+	loadRoutesWithMiddlewares()
 
-	loadRoutesWithoutMiddlewares()
+	// loadRoutesWithoutMiddlewares()
 
 	router.Run(":8080")
 }
@@ -84,40 +84,19 @@ func loadRoutesWithMiddlewares() {
 
 	roleRoutes := router.Group("/roles")
 	roleRoutes.Use(middlewares.AuthMiddleware("Administrador"))
-	// Todas las rutas de roles están protegidas
-	// roleRoutes.Use(middlewares.ValidateToken, middlewares.RoleMiddleware([]string{"Administrador"})) // Solo administradores pueden acceder
-	// {
-	// 	// roleRoutes.POST("/", roleHandler.CreateRole)      // Crear rol
-	// 	// roleRoutes.GET("/", roleHandler.ListRoles)        // Listar roles
-	// 	// roleRoutes.GET("/:id", roleHandler.GetRole)       // Obtener rol por ID
-	// 	// roleRoutes.PUT("/:id", roleHandler.UpdateRole)    // Actualizar rol
-	// 	// roleRoutes.DELETE("/:id", roleHandler.DeleteRole)  // Eliminar rol
-	// }
+	{
+		roleRoutes.POST("/", roleHandler.CreateRole)      // Crear rol
+		roleRoutes.GET("/", roleHandler.ListRoles)        // Listar roles
+		roleRoutes.GET("/:id", roleHandler.GetRole)       // Obtener rol por ID
+		roleRoutes.PUT("/:id", roleHandler.UpdateRole)    // Actualizar rol
+		roleRoutes.DELETE("/:id", roleHandler.DeleteRole)  // Eliminar rol
+	}
 
 	// Group with middleware CheckToken
 	userRoutes := router.Group("/users")
-	
-	// // Aplicar el middleware solo a las rutas específicas
-	// userRoutes.Use(middlewares.ValidateToken, middlewares.RoleMiddleware([]string{"Lector", "Administrador"}))
-	// {
-	// 	userRoutes.GET("/", userHandler.ListUsers) // Esta ruta está protegida
-	// 	userRoutes.GET("/:id", userHandler.GetUser ) // Esta ruta también está protegida
-	// }
-
-	// userRoutes.Use(middlewares.RoleMiddleware([]string{"Administrador"}))
-	// {
-	// 	userRoutes.PUT("/:id", userHandler.UpdateUser)
-	// 	userRoutes.DELETE("/:id", userHandler.DeleteUser)
-	// }
-	roleRoutes.POST("/", roleHandler.CreateRole)      // Crear rol
-	roleRoutes.GET("/", roleHandler.ListRoles)        // Listar roles
-	roleRoutes.GET("/:id", roleHandler.GetRole)       // Obtener rol por ID
-	roleRoutes.PUT("/:id", roleHandler.UpdateRole)    // Actualizar rol
-	roleRoutes.DELETE("/:id", roleHandler.DeleteRole)  // Eliminar rol	
-	
-	userRoutes.GET("/", userHandler.ListUsers) // Esta ruta está protegida
-	userRoutes.GET("/:id", userHandler.GetUser ) // Esta ruta también está protegida
-	userRoutes.PUT("/:id", userHandler.UpdateUser)
-	userRoutes.DELETE("/:id", userHandler.DeleteUser)
+	userRoutes.GET("/", middlewares.AuthMiddleware("Administrador", "Lector"),userHandler.ListUsers) // Esta ruta está protegida
+	userRoutes.GET("/:id", middlewares.AuthMiddleware("Administrador", "Lector"), userHandler.GetUser ) // Esta ruta también está protegida
+	userRoutes.PUT("/:id",  middlewares.AuthMiddleware("Administrador"),userHandler.UpdateUser)
+	userRoutes.DELETE("/:id",  middlewares.AuthMiddleware("Administrador"),userHandler.DeleteUser)
 
 }
