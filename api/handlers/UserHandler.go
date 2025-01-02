@@ -6,7 +6,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/lucapierini/project-go-task_manager/dto"
-	"github.com/lucapierini/project-go-task_manager/middlewares"
 	"github.com/lucapierini/project-go-task_manager/services"
 )
 
@@ -38,7 +37,7 @@ func (h *UserHandler) Register(c *gin.Context) {
 		return
 	}
 
-	tokens, err := middlewares.GenerateTokenPair(user)
+	tokens, err := services.GenerateTokenPair(user)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate tokens"})
 		return
@@ -64,7 +63,7 @@ func (h *UserHandler) Login(c *gin.Context) {
 		return
 	}
 
-	tokens, err := middlewares.GenerateTokenPair(user)
+	tokens, err := services.GenerateTokenPair(user)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate tokens"})
 		return

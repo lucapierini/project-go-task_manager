@@ -75,7 +75,7 @@ func setupRoutes(router *gin.Engine) {
 		{
 			auth.POST("/register", userHandler.Register)
 			auth.POST("/login", userHandler.Login)
-			auth.POST("/refresh", middlewares.RefreshTokenHandler)
+			auth.POST("/refresh", handlers.RefreshTokenHandler)
 		}
 
 		// Protected routes
