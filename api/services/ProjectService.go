@@ -17,7 +17,7 @@ type ProjectInterface interface {
 	DeleteProject(id uint) error
 	AddUsersToProject(projectId uint, userIds []uint) error
 	RemoveUsersFromProject(projectId uint, userIds []uint) error
-	AddTasksToProject(projectId uint, taskIds []uint) error
+	AddTasksToProject(projectId uint, taskIds []uint, userId uint) error
 	RemoveTasksFromProject(projectId uint, taskIds []uint) error
 }
 

@@ -15,6 +15,7 @@ import (
 var (
 	userHandler *handlers.UserHandler
 	roleHandler *handlers.RoleHandler
+	projectHandler *handlers.ProjectHandler
 )
 
 func init() {
@@ -24,9 +25,11 @@ func init() {
 
 	userService := services.NewUserService()
 	roleService := services.NewRoleService()
+	projectService := services.NewProjectService()
 
 	userHandler = handlers.NewUserHandler(userService)
 	roleHandler = handlers.NewRoleHandler(roleService)
+	projectHandler = handlers.NewProjectHandler(projectService)
 
 	initializeDefaultData(roleService, userService)
 }

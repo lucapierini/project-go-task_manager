@@ -154,3 +154,47 @@ func (h *UserHandler) DeleteUser(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "User deleted successfully"})
 }
+
+func (h *UserHandler) AssignRoleToUser(c *gin.Context) {
+	userId, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID format"})
+		return
+	}
+
+	roleId, err := strconv.ParseUint(c.Param("role_id"), 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid role ID format"})
+		return
+	}
+
+	err = h.userService.AssignRoleToUser(uint(userId), uint(roleId))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Role assigned to user successfully"})
+}
+
+func (h *UserHandler) UnassignRoleToUser(c *gin.Context) {
+	userId, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID format"})
+		return
+	}
+
+	roleId, err := strconv.ParseUint(c.Param("role_id"), 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid role ID format"})
+		return
+	}
+
+	err = h.userService.UnassignRoleToUser(uint(userId), uint(roleId))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Role unassigned from user successfully"})
+}
