@@ -18,7 +18,9 @@ type UserInterface interface {
     GetUserByEmail(email string) (*models.User, error)
     ListUsers() ([]models.User, error)
     UpdateUser(id uint, userDto dto.UserDto) (*models.User, error)
-    DeleteUser(id uint) error // Este método debe estar presente
+    DeleteUser(id uint) error
+	AssignRoleToUser(userId uint, roleId uint) error
+	UnassignRoleToUser(userId uint, roleId uint) error
 }
 
 type UserService struct{}
@@ -156,4 +158,63 @@ func (s *UserService) DeleteUser (id uint) error {
         return err
     }
     return nil
+}
+
+func (s *UserService) AssignRoleToUser(userId uint, roleId uint) error {
+	var user models.User
+	if err := config.DB.Preload("Roles").Where("id = ?", userId).First(&user).Error; err != nil {
+		return err
+	}
+
+	var role models.Role
+	if err := config.DB.Where("id = ?", roleId).First(&role).Error; err != nil {
+		return err
+	}
+
+	// Check if role is already assigned to the user
+	for _, r := range user.Roles {
+		if r.ID == roleId {
+			return errors.New("role already assigned to user")
+		}
+	}
+
+	user.Roles = append(user.Roles, role)
+
+	if err := config.DB.Save(&user).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *UserService) UnassignRoleToUser(userId uint, roleId uint) error {
+	var user models.User
+	if err := config.DB.Preload("Roles").Where("id = ?", userId).First(&user).Error; err != nil {
+		return err
+	}
+
+	var role models.Role
+	if err := config.DB.Where("id = ?", roleId).First(&role).Error; err != nil {
+		return err
+	}
+
+	// Check if role is already assigned to the user
+	var found bool
+	for i, r := range user.Roles {
+		if r.ID == roleId {
+			user.Roles = append(user.Roles[:i], user.Roles[i+1:]...)
+			found = true
+			break
+		}
+	}
+
+	if !found {
+		return errors.New("role not assigned to user")
+	}
+
+	if err := config.DB.Save(&user).Error; err != nil {
+		return err
+	}
+
+	return nil
 }
