@@ -140,7 +140,7 @@ func (h *ProjectHandler) DeleteProject(c *gin.Context){
 }
 
 func (h *ProjectHandler) AddUsersToProject(c *gin.Context){
-	idProject, err := strconv.Atoi(c.Param("id"))
+	idProject, err := strconv.Atoi(c.Param("id_project"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid project or user id"})
 		return

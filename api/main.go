@@ -99,8 +99,26 @@ func setupRoutes(router *gin.Engine) {
 			users := admin.Group("/users")
 			{
 				users.GET("/", userHandler.ListUsers)
+				users.GET("/:id", userHandler.GetUser)
 				users.PUT("/:id", userHandler.UpdateUser)
 				users.DELETE("/:id", userHandler.DeleteUser)
+				users.POST("/:id_user/:id_role", userHandler.AddRoleToUser)
+				users.DELETE("/:id/:id_role", userHandler.RemoveRoleFromUser)
+			}
+
+			// Project management
+			projects := admin.Group("/projects")
+			{
+				projects.GET("/", projectHandler.ListProjects)
+				projects.POST("/", projectHandler.CreateProject)
+				projects.GET("/:id", projectHandler.GetProjectById)
+				projects.PUT("/:id", projectHandler.UpdateProject)
+				projects.DELETE("/:id", projectHandler.DeleteProject)
+				projects.GET("/user/:id", projectHandler.ListProjectsByUserId)	
+				projects.POST("/:id/user/:userId", projectHandler.AddUsersToProject)
+				projects.DELETE("/:id/user/:userId", projectHandler.RemoveUsersFromProject)
+				projects.POST("/:id/task", projectHandler.AddTasksToProject)
+				projects.DELETE("/:id/task/:taskId", projectHandler.RemoveTasksFromProject)
 			}
 		}
 
@@ -109,6 +127,13 @@ func setupRoutes(router *gin.Engine) {
 		users.Use(middlewares.AuthMiddleware("Administrador", "Lector"))
 		{
 			users.GET("/:id", userHandler.GetUser)
+		}
+
+		projects := api.Group("/projects")
+		projects.Use(middlewares.AuthMiddleware("Administrador", "Usuario"))
+		{
+			projects.POST("/", projectHandler.CreateProject)
+			
 		}
 	}
 }

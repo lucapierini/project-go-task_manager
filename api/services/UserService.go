@@ -166,21 +166,21 @@ func (s *UserService) AssignRoleToUser(userId uint, roleId uint) error {
 		return err
 	}
 
-	var role models.Role
-	if err := config.DB.Where("id = ?", roleId).First(&role).Error; err != nil {
-		return err
-	}
-
-	// Check if role is already assigned to the user
+		// Check if role is already assigned to the user
 	for _, r := range user.Roles {
 		if r.ID == roleId {
 			return errors.New("role already assigned to user")
 		}
 	}
 
-	user.Roles = append(user.Roles, role)
+	var role models.Role
+	if err := config.DB.Where("id = ?", roleId).First(&role).Error; err != nil {
+		return err
+	}
 
-	if err := config.DB.Save(&user).Error; err != nil {
+	err := config.DB.Model(&user).Association("Roles").Append(&role)
+
+	if err != nil {
 		return err
 	}
 
@@ -193,12 +193,7 @@ func (s *UserService) UnassignRoleToUser(userId uint, roleId uint) error {
 		return err
 	}
 
-	var role models.Role
-	if err := config.DB.Where("id = ?", roleId).First(&role).Error; err != nil {
-		return err
-	}
-
-	// Check if role is already assigned to the user
+		// Check if role is already assigned to the user
 	var found bool
 	for i, r := range user.Roles {
 		if r.ID == roleId {
@@ -212,7 +207,14 @@ func (s *UserService) UnassignRoleToUser(userId uint, roleId uint) error {
 		return errors.New("role not assigned to user")
 	}
 
-	if err := config.DB.Save(&user).Error; err != nil {
+	var role models.Role
+	if err := config.DB.Where("id = ?", roleId).First(&role).Error; err != nil {
+		return err
+	}
+
+	err := config.DB.Model(&user).Association("Roles").Delete(&role)
+
+	if err != nil {
 		return err
 	}
 

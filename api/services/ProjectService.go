@@ -122,14 +122,27 @@ func (s *ProjectService) ListProjectsByUserId(userId uint) ([]models.Project, er
 	return projects, nil
 }
 
-func (s *ProjectService) DeleteProject(id uint, userId uint) error {
+// func (s *ProjectService) DeleteProject(id uint, userId uint) error {
+// 	var project models.Project
+// 	if result := config.DB.First(&project, id); result.Error != nil {
+// 		return result.Error
+// 	}
+
+// 	if project.OwnerID != userId {
+// 		return errors.New("only the project owner can delete the project")
+// 	}
+
+// 	if result := config.DB.Delete(&project); result.Error != nil {
+// 		return result.Error
+// 	}
+
+// 	return nil
+// }
+
+func (s *ProjectService) DeleteProject(id uint) error {
 	var project models.Project
 	if result := config.DB.First(&project, id); result.Error != nil {
 		return result.Error
-	}
-
-	if project.OwnerID != userId {
-		return errors.New("only the project owner can delete the project")
 	}
 
 	if result := config.DB.Delete(&project); result.Error != nil {
@@ -139,26 +152,13 @@ func (s *ProjectService) DeleteProject(id uint, userId uint) error {
 	return nil
 }
 
-func (s *ProjectService) AddUsersToProject(projectId uint, userId uint, userIds []uint) error {
+
+func (s *ProjectService) AddUsersToProject(projectId uint,  userIds []uint) error {
 	var project models.Project
 	if result := config.DB.Preload("Users").First(&project, projectId); result.Error != nil {
 		return result.Error
 	}
 
-	// Check if the user is the owner or part of the project
-	isAuthorized := project.OwnerID == userId
-	if !isAuthorized {
-		for _, user := range project.Users {
-			if user.ID == userId {
-				isAuthorized = true
-				break
-			}
-		}
-	}
-
-	if !isAuthorized {
-		return errors.New("user is not authorized to add users to this project")
-	}
 
 	var users []models.User
 	if result := config.DB.Find(&users, userIds); result.Error != nil {
@@ -174,25 +174,61 @@ func (s *ProjectService) AddUsersToProject(projectId uint, userId uint, userIds 
 	return nil
 }
 
-func (s *ProjectService) RemoveUsersFromProject(projectId uint, userId uint, userIds []uint) error {
+
+// func (s *ProjectService) RemoveUsersFromProject(projectId uint, userId uint, userIds []uint) error {
+// 	var project models.Project
+// 	if result := config.DB.Preload("Users").First(&project, projectId); result.Error != nil {
+// 		return result.Error
+// 	}
+
+// 	// Check if the user is the owner or part of the project
+// 	isAuthorized := project.OwnerID == userId
+// 	if !isAuthorized {
+// 		for _, user := range project.Users {
+// 			if user.ID == userId {
+// 				isAuthorized = true
+// 				break
+// 			}
+// 		}
+// 	}
+
+// 	if !isAuthorized {
+// 		return errors.New("user is not authorized to remove users from this project")
+// 	}
+
+// 	var users []models.User
+// 	if result := config.DB.Find(&users, userIds); result.Error != nil {
+// 		return result.Error
+// 	}
+
+// 	var newUsers []models.User
+// 	for _, user := range project.Users {
+// 		found := false
+// 		for _, userId := range userIds {
+// 			if user.ID == userId {
+// 				found = true
+// 				break
+// 			}
+// 		}
+// 		if !found {
+// 			newUsers = append(newUsers, user)
+// 		}
+// 	}
+
+// 	project.Users = newUsers
+
+// 	if result := config.DB.Save(&project); result.Error != nil {
+// 		return result.Error
+// 	}
+
+// 	return nil
+// }
+
+
+func (s *ProjectService) RemoveUsersFromProject(projectId uint, userIds []uint) error {
 	var project models.Project
 	if result := config.DB.Preload("Users").First(&project, projectId); result.Error != nil {
 		return result.Error
-	}
-
-	// Check if the user is the owner or part of the project
-	isAuthorized := project.OwnerID == userId
-	if !isAuthorized {
-		for _, user := range project.Users {
-			if user.ID == userId {
-				isAuthorized = true
-				break
-			}
-		}
-	}
-
-	if !isAuthorized {
-		return errors.New("user is not authorized to remove users from this project")
 	}
 
 	var users []models.User
@@ -259,25 +295,60 @@ func (s *ProjectService) AddTasksToProject(projectId uint, taskIds []uint, userI
 	return nil
 }
 
-func (s *ProjectService) RemoveTasksFromProject(projectId uint, taskIds []uint, userId uint) error {
+// func (s *ProjectService) RemoveTasksFromProject(projectId uint, taskIds []uint, userId uint) error {
+// 	var project models.Project
+// 	if result := config.DB.Preload("Users").First(&project, projectId); result.Error != nil {
+// 		return result.Error
+// 	}
+
+// 	// Check if the user is the owner or part of the project
+// 	isAuthorized := project.OwnerID == userId
+// 	if !isAuthorized {
+// 		for _, user := range project.Users {
+// 			if user.ID == userId {
+// 				isAuthorized = true
+// 				break
+// 			}
+// 		}
+// 	}
+
+// 	if !isAuthorized {
+// 		return errors.New("user is not authorized to remove users from this project")
+// 	}
+
+// 	var tasks []models.Task
+// 	if result := config.DB.Find(&tasks, taskIds); result.Error != nil {
+// 		return result.Error
+// 	}
+
+// 	var newTasks []models.Task
+// 	for _, task := range project.Tasks {
+// 		found := false
+// 		for _, taskId := range taskIds {
+// 			if task.ID == taskId {
+// 				found = true
+// 				break
+// 			}
+// 		}
+// 		if !found {
+// 			newTasks = append(newTasks, task)
+// 		}
+// 	}
+
+// 	project.Tasks = newTasks
+
+// 	if result := config.DB.Save(&project); result.Error != nil {
+// 		return result.Error
+// 	}
+
+// 	return nil
+// }
+
+
+func (s *ProjectService) RemoveTasksFromProject(projectId uint, taskIds []uint) error {
 	var project models.Project
 	if result := config.DB.Preload("Users").First(&project, projectId); result.Error != nil {
 		return result.Error
-	}
-
-	// Check if the user is the owner or part of the project
-	isAuthorized := project.OwnerID == userId
-	if !isAuthorized {
-		for _, user := range project.Users {
-			if user.ID == userId {
-				isAuthorized = true
-				break
-			}
-		}
-	}
-
-	if !isAuthorized {
-		return errors.New("user is not authorized to remove users from this project")
 	}
 
 	var tasks []models.Task
