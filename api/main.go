@@ -10,6 +10,7 @@ import (
 	"github.com/lucapierini/project-go-task_manager/handlers"
 	"github.com/lucapierini/project-go-task_manager/middlewares"
 	"github.com/lucapierini/project-go-task_manager/services"
+	"gorm.io/gorm"
 )
 
 var (
@@ -32,6 +33,14 @@ func init() {
 	projectHandler = handlers.NewProjectHandler(projectService)
 
 	initializeDefaultData(roleService, userService)
+	DatabaseMiddleware(config.DB)
+}
+
+func DatabaseMiddleware(db *gorm.DB) gin.HandlerFunc {
+    return func(c *gin.Context) {
+        c.Set("db", db)
+        c.Next()
+    }
 }
 
 func initializeDefaultData(roleService *services.RoleService, userService *services.UserService) {
@@ -124,16 +133,25 @@ func setupRoutes(router *gin.Engine) {
 
 		// Routes accessible by both Admin and Reader
 		users := api.Group("/users")
-		users.Use(middlewares.AuthMiddleware("Administrador", "Lector"))
+		users.Use(middlewares.AuthMiddleware("Usuario"), middlewares.IsOwner("user"))
 		{
-			users.GET("/:id", userHandler.GetUser)
+			users.GET("/:id" ,userHandler.GetUser)
+			users.PUT("/:id", userHandler.UpdateUser)
+			users.DELETE("/:id", userHandler.DeleteUser)
 		}
+		// users := api.Group("/users")
+		// {
+		// 	users.GET("/:id",middlewares.AuthMiddleware("Usuario"), middlewares.IsOwner("user"), userHandler.GetUser)
+		// }
 
 		projects := api.Group("/projects")
-		projects.Use(middlewares.AuthMiddleware("Administrador", "Usuario"))
+		projects.Use(middlewares.AuthMiddleware("Usuario"), middlewares.IsOwner("project"))
 		{
 			projects.POST("/", projectHandler.CreateProject)
 
 		}
+
+		tasks := api.Group("/tasks")
+		tasks.Use(middlewares.AuthMiddleware("Usuario"), middlewares.IsOwner("task"))
 	}
 }
