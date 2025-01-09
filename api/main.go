@@ -35,7 +35,7 @@ func init() {
 }
 
 func initializeDefaultData(roleService *services.RoleService, userService *services.UserService) {
-	roles := []string{"Administrador", "Lector", "Usuario"}
+	roles := []string{"Administrador", "Usuario"}
 	for _, role := range roles {
 		if _, err := roleService.CreateRole(dto.RoleDto{Name: role}); err != nil {
 			log.Printf("Error creating role %s: %v\n", role, err)
@@ -133,7 +133,7 @@ func setupRoutes(router *gin.Engine) {
 		projects.Use(middlewares.AuthMiddleware("Administrador", "Usuario"))
 		{
 			projects.POST("/", projectHandler.CreateProject)
-			
+
 		}
 	}
 }
