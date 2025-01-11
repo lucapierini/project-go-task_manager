@@ -35,7 +35,7 @@ func (h *RoleHandler) CreateRole(c *gin.Context) {
 }
 
 func (h *RoleHandler) GetRole(c *gin.Context) {
-	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	id, err := strconv.ParseUint(c.Param("roleId"), 10, 32)
 	if err != nil {
 		c.JSON(400, gin.H{"error": "Invalid ID"})
 		return
@@ -51,7 +51,7 @@ func (h *RoleHandler) GetRole(c *gin.Context) {
 }
 
 func (h *RoleHandler) UpdateRole(c *gin.Context) {
-	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	id, err := strconv.ParseUint(c.Param("roleId"), 10, 32)
 	if err != nil {
 		c.JSON(400, gin.H{"error": "Invalid ID"})
 		return
@@ -73,7 +73,7 @@ func (h *RoleHandler) UpdateRole(c *gin.Context) {
 }
 
 func (h *RoleHandler) DeleteRole(c *gin.Context) {
-	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	id, err := strconv.ParseUint(c.Param("roleId"), 10, 32)
 	if err != nil {
 		c.JSON(400, gin.H{"error": "Invalid ID"})
 		return

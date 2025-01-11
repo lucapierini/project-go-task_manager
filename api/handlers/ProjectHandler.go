@@ -40,7 +40,7 @@ func (h *ProjectHandler) CreateProject(c *gin.Context){
 }
 
 func (h *ProjectHandler) GetProjectById(c *gin.Context){
-	id, err := strconv.Atoi(c.Param("id"))
+	id, err := strconv.Atoi(c.Param("projectId"))
 
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid project id"})
@@ -73,7 +73,7 @@ func (h *ProjectHandler) ListProjects(c *gin.Context){
 }
 
 func (h *ProjectHandler) UpdateProject(c *gin.Context){
-	id, err := strconv.Atoi(c.Param("id"))
+	id, err := strconv.Atoi(c.Param("projectId"))
 
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid project id"})
@@ -99,7 +99,7 @@ func (h *ProjectHandler) UpdateProject(c *gin.Context){
 }
 
 func (h *ProjectHandler) ListProjectsByUserId(c *gin.Context){
-	id, err := strconv.Atoi(c.Param("id"))
+	id, err := strconv.Atoi(c.Param("userId"))
 
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user id"})
@@ -119,7 +119,7 @@ func (h *ProjectHandler) ListProjectsByUserId(c *gin.Context){
 }
 
 func (h *ProjectHandler) DeleteProject(c *gin.Context){
-	id, err := strconv.Atoi(c.Param("id"))
+	id, err := strconv.Atoi(c.Param("projectId"))
 
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid project id"})
@@ -139,24 +139,19 @@ func (h *ProjectHandler) DeleteProject(c *gin.Context){
 
 }
 
-func (h *ProjectHandler) AddUsersToProject(c *gin.Context){
-	idProject, err := strconv.Atoi(c.Param("id_project"))
+func (h *ProjectHandler) AddUserToProject(c *gin.Context){
+	idProject, err := strconv.Atoi(c.Param("projectId"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid project or user id"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid project id"})
 		return
 	}
 
-	udsString := c.QueryArray("users_ids")
-	var usersIds []uint
-	for _, id := range udsString {
-		userId, err := strconv.Atoi(id)
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid project or user id"})
-			return
-			}
-		usersIds = append(usersIds, uint(userId))
+	idUser, err := strconv.Atoi(c.Param("userId"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user id"})
+		return
 	}
-	err = h.projectService.AddUsersToProject(uint(idProject), usersIds)
+	err = h.projectService.AddUserToProject(uint(idProject), uint(idUser))
 
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal Server Error", "details": err.Error()})
@@ -168,25 +163,20 @@ func (h *ProjectHandler) AddUsersToProject(c *gin.Context){
 	})
 }
 
-func (h *ProjectHandler) RemoveUsersFromProject(c *gin.Context){
-	idProject, err := strconv.Atoi(c.Param("id"))
+func (h *ProjectHandler) RemoveUserFromProject(c *gin.Context){
+	idProject, err := strconv.Atoi(c.Param("projectId"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid project or user id"})
 		return
 	}
 
-	udsString := c.QueryArray("users_ids")
-	var usersIds []uint
-	for _, id := range udsString {
-		userId, err := strconv.Atoi(id)
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid project or user id"})
-			return
-			}
-		usersIds = append(usersIds, uint(userId))
+	idUser, err := strconv.Atoi(c.Param("userId"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user id"})
+		return
 	}
 
-	err = h.projectService.RemoveUsersFromProject(uint(idProject), usersIds)
+	err = h.projectService.RemoveUserFromProject(uint(idProject), uint(idUser))
 
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal Server Error", "details": err.Error()})
@@ -198,27 +188,20 @@ func (h *ProjectHandler) RemoveUsersFromProject(c *gin.Context){
 	})
 }
 
-func (h *ProjectHandler) AddTasksToProject(c *gin.Context){
-	idProject, err := strconv.Atoi(c.Param("id_project"))
+func (h *ProjectHandler) AddTaskToProject(c *gin.Context){
+	idProject, err := strconv.Atoi(c.Param("projectId"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid project id"})
 		return
 	}
 
-	tasksString := c.QueryArray("tasks_ids")
-	var tasksIds []uint
-	for _, id := range tasksString {
-		taskId, err := strconv.Atoi(id)
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid project or user id"})
-			return
-		}
-		tasksIds = append(tasksIds, uint(taskId))
+	idTask, err := strconv.Atoi(c.Param("taskId"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid task id"})
+		return
 	}
 
-	idUser, err := strconv.Atoi(c.Param("id_user"))
-
-	err = h.projectService.AddTasksToProject(uint(idProject), tasksIds, uint(idUser))
+	err = h.projectService.AddTaskToProject(uint(idProject), uint(idTask))
 
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal Server Error", "details": err.Error()})
@@ -230,25 +213,20 @@ func (h *ProjectHandler) AddTasksToProject(c *gin.Context){
 	})
 }
 
-func (h *ProjectHandler) RemoveTasksFromProject(c *gin.Context){
-	idProject, err := strconv.Atoi(c.Param("id"))
+func (h *ProjectHandler) RemoveTaskFromProject(c *gin.Context){
+	idProject, err := strconv.Atoi(c.Param("projectId"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid project id"})
 		return
 	}
 
-	tasksString := c.QueryArray("tasks_ids")
-	var tasksIds []uint
-	for _, id := range tasksString {
-		taskId, err := strconv.Atoi(id)
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid project or user id"})
-			return
-		}
-		tasksIds = append(tasksIds, uint(taskId))
+	idTask, err := strconv.Atoi(c.Param("taskId"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid task id"})
+		return
 	}
 
-	err = h.projectService.RemoveTasksFromProject(uint(idProject), tasksIds)
+	err = h.projectService.RemoveTaskFromProject(uint(idProject), uint(idTask))
 
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal Server Error", "details": err.Error()})

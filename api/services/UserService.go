@@ -47,11 +47,18 @@ func (s *UserService) RegisterUser(userDto dto.UserDto) (*models.User, error) {
 		return nil, err
 	}
 
+	// assign default role
+	var defaultRole models.Role
+	if err := config.DB.First(&defaultRole, "name = ?", "Usuario").Error; err != nil {
+		return nil, err
+	}
+
 	// Create user
 	user := models.User{
 		Username: userDto.Username,
 		Email:    userDto.Email,
 		Password: string(hashedPassword),
+		Roles: []models.Role{defaultRole},
 	}
 
 	// Add roles if specified
@@ -60,14 +67,7 @@ func (s *UserService) RegisterUser(userDto dto.UserDto) (*models.User, error) {
 		if err := config.DB.Find(&roles, userDto.RoleIds).Error; err != nil {
 			return nil, err
 		}
-		user.Roles = roles
-	} else {
-		// If no roles are specified, assign default role
-		var defaultRole models.Role
-		if err := config.DB.First(&defaultRole, "name = ?", "Usuario").Error; err != nil {
-			return nil, err
-		}
-		user.Roles = []models.Role{defaultRole}
+		user.Roles = append(user.Roles, roles...)
 	}
 
 	if err := config.DB.Create(&user).Error; err != nil {

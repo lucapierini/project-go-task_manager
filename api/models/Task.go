@@ -8,6 +8,5 @@ type Task struct {
 	Description string
 	Owner   User    `gorm:"foreignKey:OwnerID"`
 	OwnerID uint
-	Project Project `gorm:"foreignKey:ProjectID"`
-	ProjectID uint
+	Project []Project `gorm:"many2many:project_tasks"`
 }

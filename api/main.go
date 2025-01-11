@@ -10,13 +10,14 @@ import (
 	"github.com/lucapierini/project-go-task_manager/handlers"
 	"github.com/lucapierini/project-go-task_manager/middlewares"
 	"github.com/lucapierini/project-go-task_manager/services"
-	"gorm.io/gorm"
+	// "gorm.io/gorm"
 )
 
 var (
 	userHandler *handlers.UserHandler
 	roleHandler *handlers.RoleHandler
 	projectHandler *handlers.ProjectHandler
+	taskHandler *handlers.TaskHandler
 )
 
 func init() {
@@ -27,21 +28,23 @@ func init() {
 	userService := services.NewUserService()
 	roleService := services.NewRoleService()
 	projectService := services.NewProjectService()
+	taskService := services.NewTaskService()
 
 	userHandler = handlers.NewUserHandler(userService)
 	roleHandler = handlers.NewRoleHandler(roleService)
 	projectHandler = handlers.NewProjectHandler(projectService)
+	taskHandler = handlers.NewTaskHandler(taskService)
 
 	initializeDefaultData(roleService, userService)
-	DatabaseMiddleware(config.DB)
+	// DatabaseMiddleware(config.DB)
 }
 
-func DatabaseMiddleware(db *gorm.DB) gin.HandlerFunc {
-    return func(c *gin.Context) {
-        c.Set("db", db)
-        c.Next()
-    }
-}
+// func DatabaseMiddleware(db *gorm.DB) gin.HandlerFunc {
+//     return func(c *gin.Context) {
+//         c.Set("db", db)
+//         c.Next()
+//     }
+// }
 
 func initializeDefaultData(roleService *services.RoleService, userService *services.UserService) {
 	roles := []string{"Administrador", "Usuario"}
@@ -99,20 +102,20 @@ func setupRoutes(router *gin.Engine) {
 			{
 				roles.POST("/", roleHandler.CreateRole)
 				roles.GET("/", roleHandler.ListRoles)
-				roles.GET("/:id", roleHandler.GetRole)
-				roles.PUT("/:id", roleHandler.UpdateRole)
-				roles.DELETE("/:id", roleHandler.DeleteRole)
+				roles.GET("/:roleId", roleHandler.GetRole)
+				roles.PUT("/:roleId", roleHandler.UpdateRole)
+				roles.DELETE("/:roleId", roleHandler.DeleteRole)
 			}
 
 			// User management (admin only)
 			users := admin.Group("/users")
 			{
 				users.GET("/", userHandler.ListUsers)
-				users.GET("/:id", userHandler.GetUser)
-				users.PUT("/:id", userHandler.UpdateUser)
-				users.DELETE("/:id", userHandler.DeleteUser)
-				users.POST("/:id_user/:id_role", userHandler.AddRoleToUser)
-				users.DELETE("/:id/:id_role", userHandler.RemoveRoleFromUser)
+				users.GET("/:userId", userHandler.GetUser)
+				users.PUT("/:userId", userHandler.UpdateUser)
+				users.DELETE("/:userId", userHandler.DeleteUser)
+				users.POST("/:userId/:roleId", userHandler.AddRoleToUser)
+				users.DELETE("/:userId/:roleId", userHandler.RemoveRoleFromUser)
 			}
 
 			// Project management
@@ -120,14 +123,23 @@ func setupRoutes(router *gin.Engine) {
 			{
 				projects.GET("/", projectHandler.ListProjects)
 				projects.POST("/", projectHandler.CreateProject)
-				projects.GET("/:id", projectHandler.GetProjectById)
-				projects.PUT("/:id", projectHandler.UpdateProject)
-				projects.DELETE("/:id", projectHandler.DeleteProject)
-				projects.GET("/user/:id", projectHandler.ListProjectsByUserId)	
-				projects.POST("/:id/user/:userId", projectHandler.AddUsersToProject)
-				projects.DELETE("/:id/user/:userId", projectHandler.RemoveUsersFromProject)
-				projects.POST("/:id/task", projectHandler.AddTasksToProject)
-				projects.DELETE("/:id/task/:taskId", projectHandler.RemoveTasksFromProject)
+				projects.GET("/:projectId", projectHandler.GetProjectById)
+				projects.PUT("/:projectId", projectHandler.UpdateProject)
+				projects.DELETE("/:projectId", projectHandler.DeleteProject)
+				projects.GET("/user/:userId", projectHandler.ListProjectsByUserId)	
+				projects.POST("/:projectId/user/:userId", projectHandler.AddUserToProject)
+				projects.DELETE("/:projectId/user/:userId", projectHandler.RemoveUserFromProject)
+				projects.POST("/:projectId/task/:taskId", projectHandler.AddTaskToProject)
+				projects.DELETE("/:projectId/task/:taskId", projectHandler.RemoveTaskFromProject)
+			}
+
+			tasks := admin.Group("/tasks")
+			{
+				tasks.GET("/", taskHandler.ListTasks)
+				tasks.POST("/", taskHandler.CreateTask)
+				tasks.GET("/:taskId", taskHandler.GetTaskById)
+				tasks.PUT("/:taskId", taskHandler.UpdateTask)
+				tasks.DELETE("/:taskId", taskHandler.DeleteTask)
 			}
 		}
 
@@ -135,23 +147,40 @@ func setupRoutes(router *gin.Engine) {
 		users := api.Group("/users")
 		users.Use(middlewares.AuthMiddleware("Usuario"), middlewares.IsOwner("user"))
 		{
-			users.GET("/:id" ,userHandler.GetUser)
-			users.PUT("/:id", userHandler.UpdateUser)
-			users.DELETE("/:id", userHandler.DeleteUser)
+			users.GET("/:userId" ,userHandler.GetUser)
+			users.PUT("/:userId", userHandler.UpdateUser)
+			users.DELETE("/:userId", userHandler.DeleteUser)
 		}
-		// users := api.Group("/users")
-		// {
-		// 	users.GET("/:id",middlewares.AuthMiddleware("Usuario"), middlewares.IsOwner("user"), userHandler.GetUser)
-		// }
 
 		projects := api.Group("/projects")
-		projects.Use(middlewares.AuthMiddleware("Usuario"), middlewares.IsOwner("project"))
+		projects.Use(middlewares.AuthMiddleware("Usuario"))
 		{
 			projects.POST("/", projectHandler.CreateProject)
-
+			projects.GET("/user/:userId",middlewares.IsOwner("user"), projectHandler.ListProjectsByUserId)
+			projects.Use(middlewares.IsOwner("project"))
+			{
+				projects.GET("/:projectId", projectHandler.GetProjectById)
+				projects.PUT("/:projectId", projectHandler.UpdateProject)
+				projects.DELETE("/:projectId", projectHandler.DeleteProject)
+				projects.POST("/:projectId/user/:userId", projectHandler.AddUserToProject)
+				projects.DELETE("/:projectId/user/:userId", projectHandler.RemoveUserFromProject)
+				projects.POST("/:projectId/task/:taskId", projectHandler.AddTaskToProject)
+				projects.DELETE("/:projectId/task/:taskId", projectHandler.RemoveTaskFromProject)
+			}
+			
 		}
 
 		tasks := api.Group("/tasks")
-		tasks.Use(middlewares.AuthMiddleware("Usuario"), middlewares.IsOwner("task"))
+		tasks.Use(middlewares.AuthMiddleware("Usuario"))
+		{
+			tasks.POST("/", taskHandler.CreateTask)
+			tasks.Use(middlewares.IsOwner("task"))
+			{
+				tasks.GET("/:taskId", taskHandler.GetTaskById)
+				tasks.PUT("/:taskId", taskHandler.UpdateTask)
+				tasks.DELETE("/:taskId", taskHandler.DeleteTask)
+			}
+
+		}
 	}
 }

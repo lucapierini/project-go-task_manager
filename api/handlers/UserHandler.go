@@ -77,7 +77,7 @@ func (h *UserHandler) Login(c *gin.Context) {
 }
 
 func (h *UserHandler) GetUser(c *gin.Context) {
-	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	id, err := strconv.ParseUint(c.Param("userId"), 10, 32)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID format"})
 		return
@@ -119,7 +119,7 @@ func (h *UserHandler) ListUsers(c *gin.Context) {
 }
 
 func (h *UserHandler) UpdateUser(c *gin.Context) {
-	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	id, err := strconv.ParseUint(c.Param("userId"), 10, 32)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID format"})
 		return
@@ -141,7 +141,7 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 }
 
 func (h *UserHandler) DeleteUser(c *gin.Context) {
-	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	id, err := strconv.ParseUint(c.Param("userId"), 10, 32)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID format"})
 		return
@@ -156,13 +156,13 @@ func (h *UserHandler) DeleteUser(c *gin.Context) {
 }
 
 func (h *UserHandler) AddRoleToUser(c *gin.Context) {
-	userId, err := strconv.ParseUint(c.Param("id_user"), 10, 32)
+	userId, err := strconv.ParseUint(c.Param("userId"), 10, 32)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID format"})
 		return
 	}
 
-	roleId, err := strconv.ParseUint(c.Param("id_role"), 10, 32)
+	roleId, err := strconv.ParseUint(c.Param("roleId"), 10, 32)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid role ID format"})
 		return
@@ -178,13 +178,13 @@ func (h *UserHandler) AddRoleToUser(c *gin.Context) {
 }
 
 func (h *UserHandler) RemoveRoleFromUser(c *gin.Context) {
-	userId, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	userId, err := strconv.ParseUint(c.Param("userId"), 10, 32)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID format"})
 		return
 	}
 
-	roleId, err := strconv.ParseUint(c.Param("id_role"), 10, 32)
+	roleId, err := strconv.ParseUint(c.Param("roleId"), 10, 32)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid role ID format"})
 		return

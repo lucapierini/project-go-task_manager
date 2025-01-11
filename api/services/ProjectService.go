@@ -15,10 +15,10 @@ type ProjectInterface interface {
 	UpdateProject(id uint, projectDto dto.ProjectDto) (*models.Project, error)
 	ListProjectsByUserId(userId uint) ([]models.Project, error)
 	DeleteProject(id uint) error
-	AddUsersToProject(projectId uint, userIds []uint) error
-	RemoveUsersFromProject(projectId uint, userIds []uint) error
-	AddTasksToProject(projectId uint, taskIds []uint, userId uint) error
-	RemoveTasksFromProject(projectId uint, taskIds []uint) error
+	AddUserToProject(projectId uint, userId uint) error
+	RemoveUserFromProject(projectId uint, userId uint) error
+	AddTaskToProject(projectId uint, taskId uint) error
+	RemoveTaskFromProject(projectId uint, taskId uint) error
 }
 
 type ProjectService struct{}
@@ -65,7 +65,7 @@ func (s *ProjectService) CreateProject(projectDto dto.ProjectDto) (*models.Proje
 
 func (s *ProjectService) GetProjectById(id uint) (*models.Project, error) {
 	var project models.Project
-	if result := config.DB.Preload("Users").Preload("Tasks").First(&project, id); result.Error != nil {
+	if result := config.DB.Preload("Users").Preload("Tasks").Preload("Owner").First(&project, id); result.Error != nil {
 		return nil, result.Error
 	}
 
@@ -74,7 +74,7 @@ func (s *ProjectService) GetProjectById(id uint) (*models.Project, error) {
 
 func (s *ProjectService) ListProjects() ([]models.Project, error) {
 	var projects []models.Project
-	if result := config.DB.Preload("Users").Preload("Tasks").Find(&projects); result.Error != nil {
+	if result := config.DB.Preload("Users").Preload("Tasks").Preload("Owner").Find(&projects); result.Error != nil {
 		return nil, result.Error
 	}
 
@@ -115,29 +115,12 @@ func (s *ProjectService) UpdateProject(id uint, projectDto dto.ProjectDto) (*mod
 
 func (s *ProjectService) ListProjectsByUserId(userId uint) ([]models.Project, error) {
 	var projects []models.Project
-	if result := config.DB.Preload("Users").Preload("Tasks").Joins("Users").Where("user_id = ?", userId).Find(&projects); result.Error != nil {
+	if result := config.DB.Preload("Users").Preload("Tasks").Preload("Owner").Where("owner_id = ?", userId).Find(&projects); result.Error != nil {
 		return nil, result.Error
 	}
 
 	return projects, nil
 }
-
-// func (s *ProjectService) DeleteProject(id uint, userId uint) error {
-// 	var project models.Project
-// 	if result := config.DB.First(&project, id); result.Error != nil {
-// 		return result.Error
-// 	}
-
-// 	if project.OwnerID != userId {
-// 		return errors.New("only the project owner can delete the project")
-// 	}
-
-// 	if result := config.DB.Delete(&project); result.Error != nil {
-// 		return result.Error
-// 	}
-
-// 	return nil
-// }
 
 func (s *ProjectService) DeleteProject(id uint) error {
 	var project models.Project
@@ -153,228 +136,114 @@ func (s *ProjectService) DeleteProject(id uint) error {
 }
 
 
-func (s *ProjectService) AddUsersToProject(projectId uint,  userIds []uint) error {
+func (s *ProjectService) AddUserToProject(projectId uint,  userId uint) error {
 	var project models.Project
 	if result := config.DB.Preload("Users").First(&project, projectId); result.Error != nil {
 		return result.Error
 	}
 
-
-	var users []models.User
-	if result := config.DB.Find(&users, userIds); result.Error != nil {
-		return result.Error
-	}
-
-	project.Users = append(project.Users, users...)
-
-	if result := config.DB.Save(&project); result.Error != nil {
-		return result.Error
-	}
-
-	return nil
-}
-
-
-// func (s *ProjectService) RemoveUsersFromProject(projectId uint, userId uint, userIds []uint) error {
-// 	var project models.Project
-// 	if result := config.DB.Preload("Users").First(&project, projectId); result.Error != nil {
-// 		return result.Error
-// 	}
-
-// 	// Check if the user is the owner or part of the project
-// 	isAuthorized := project.OwnerID == userId
-// 	if !isAuthorized {
-// 		for _, user := range project.Users {
-// 			if user.ID == userId {
-// 				isAuthorized = true
-// 				break
-// 			}
-// 		}
-// 	}
-
-// 	if !isAuthorized {
-// 		return errors.New("user is not authorized to remove users from this project")
-// 	}
-
-// 	var users []models.User
-// 	if result := config.DB.Find(&users, userIds); result.Error != nil {
-// 		return result.Error
-// 	}
-
-// 	var newUsers []models.User
-// 	for _, user := range project.Users {
-// 		found := false
-// 		for _, userId := range userIds {
-// 			if user.ID == userId {
-// 				found = true
-// 				break
-// 			}
-// 		}
-// 		if !found {
-// 			newUsers = append(newUsers, user)
-// 		}
-// 	}
-
-// 	project.Users = newUsers
-
-// 	if result := config.DB.Save(&project); result.Error != nil {
-// 		return result.Error
-// 	}
-
-// 	return nil
-// }
-
-
-func (s *ProjectService) RemoveUsersFromProject(projectId uint, userIds []uint) error {
-	var project models.Project
-	if result := config.DB.Preload("Users").First(&project, projectId); result.Error != nil {
-		return result.Error
-	}
-
-	var users []models.User
-	if result := config.DB.Find(&users, userIds); result.Error != nil {
-		return result.Error
-	}
-
-	var newUsers []models.User
 	for _, user := range project.Users {
-		found := false
-		for _, userId := range userIds {
-			if user.ID == userId {
-				found = true
-				break
-			}
-		}
-		if !found {
-			newUsers = append(newUsers, user)
+		if user.ID == userId {
+			return errors.New("user is already in project")
 		}
 	}
 
-	project.Users = newUsers
-
-	if result := config.DB.Save(&project); result.Error != nil {
-		return result.Error
+	var user models.User
+	if err := config.DB.Where("id = ?", userId).First(&user).Error; err != nil {
+		return err
 	}
 
+	err := config.DB.Model(&project).Association("Users").Append(&user)
+
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
-func (s *ProjectService) AddTasksToProject(projectId uint, taskIds []uint, userId uint) error {
-
+func (s *ProjectService) RemoveUserFromProject(projectId uint, userId uint) error {
 	var project models.Project
 	if result := config.DB.Preload("Users").First(&project, projectId); result.Error != nil {
 		return result.Error
 	}
 
 	// Check if the user is the owner or part of the project
-	isAuthorized := project.OwnerID == userId
-	if !isAuthorized {
-		for _, user := range project.Users {
-			if user.ID == userId {
-				isAuthorized = true
-				break
-			}
+	find := false
+	for _, user := range project.Users {
+		if user.ID == userId {
+			find = true
 		}
 	}
-
-	if !isAuthorized {
-		return errors.New("user is not authorized to remove users from this project")
+	if !find {
+		return errors.New("user is not in project")
 	}
 
-	var tasks []models.Task
-	if result := config.DB.Find(&tasks, taskIds); result.Error != nil {
-		return result.Error
+	var user models.User
+	if err := config.DB.Where("id = ?", userId).First(&user).Error; err != nil {
+		return err
 	}
 
-	project.Tasks = append(project.Tasks, tasks...)
+	err := config.DB.Model(&project).Association("Users").Delete(&user)
 
-	if result := config.DB.Save(&project); result.Error != nil {
-		return result.Error
+	if err != nil {
+		return err
 	}
-
 	return nil
 }
 
-// func (s *ProjectService) RemoveTasksFromProject(projectId uint, taskIds []uint, userId uint) error {
-// 	var project models.Project
-// 	if result := config.DB.Preload("Users").First(&project, projectId); result.Error != nil {
-// 		return result.Error
-// 	}
-
-// 	// Check if the user is the owner or part of the project
-// 	isAuthorized := project.OwnerID == userId
-// 	if !isAuthorized {
-// 		for _, user := range project.Users {
-// 			if user.ID == userId {
-// 				isAuthorized = true
-// 				break
-// 			}
-// 		}
-// 	}
-
-// 	if !isAuthorized {
-// 		return errors.New("user is not authorized to remove users from this project")
-// 	}
-
-// 	var tasks []models.Task
-// 	if result := config.DB.Find(&tasks, taskIds); result.Error != nil {
-// 		return result.Error
-// 	}
-
-// 	var newTasks []models.Task
-// 	for _, task := range project.Tasks {
-// 		found := false
-// 		for _, taskId := range taskIds {
-// 			if task.ID == taskId {
-// 				found = true
-// 				break
-// 			}
-// 		}
-// 		if !found {
-// 			newTasks = append(newTasks, task)
-// 		}
-// 	}
-
-// 	project.Tasks = newTasks
-
-// 	if result := config.DB.Save(&project); result.Error != nil {
-// 		return result.Error
-// 	}
-
-// 	return nil
-// }
-
-
-func (s *ProjectService) RemoveTasksFromProject(projectId uint, taskIds []uint) error {
+func (s *ProjectService) AddTaskToProject(projectId uint, taskId uint) error {
 	var project models.Project
-	if result := config.DB.Preload("Users").First(&project, projectId); result.Error != nil {
+	if result := config.DB.Preload("Tasks").First(&project, projectId); result.Error != nil {
 		return result.Error
 	}
 
-	var tasks []models.Task
-	if result := config.DB.Find(&tasks, taskIds); result.Error != nil {
-		return result.Error
-	}
-
-	var newTasks []models.Task
 	for _, task := range project.Tasks {
-		found := false
-		for _, taskId := range taskIds {
+		if task.ID == taskId {
+			return errors.New("task is already in project")
+		}
+	}
+
+	var task models.Task
+	if err := config.DB.Where("id = ?", taskId).First(&task).Error; err != nil {
+		return err
+	}
+
+	err := config.DB.Model(&project).Association("Tasks").Append(&task)
+
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *ProjectService) RemoveTaskFromProject(projectId uint, taskId uint) error {
+	var project models.Project
+	if result := config.DB.Preload("Tasks").First(&project, projectId); result.Error != nil {
+		return result.Error
+	}
+
+	find := false
+	// Check if the task is already in the project
+		for _, task := range project.Tasks {
 			if task.ID == taskId {
-				found = true
-				break
+				find = true
 			}
 		}
-		if !found {
-			newTasks = append(newTasks, task)
+
+		if !find {
+			return errors.New("task is not in project")
 		}
-	}
 
-	project.Tasks = newTasks
+		// Add the task to the project
+		var task models.Task
+		if err := config.DB.Where("id = ?", taskId).First(&task).Error; err != nil {
+			return err
+		}
 
-	if result := config.DB.Save(&project); result.Error != nil {
-		return result.Error
-	}
+		err := config.DB.Model(&project).Association("Tasks").Delete(&task)
+		if err != nil {
+			return err
+		}
 
 	return nil
 }
